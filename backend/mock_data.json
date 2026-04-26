@@ -1,0 +1,12 @@
+[
+  {"client_id": "C001", "name": "Alpina Family Office", "free_liquidity_chf": 5400000, "last_contact_days": 120, "aum_chf": 48000000, "risk_class": "balanced"},
+  {"client_id": "C002", "name": "Limmat Trustees", "free_liquidity_chf": 2200000, "last_contact_days": 33, "aum_chf": 15000000, "risk_class": "conservative"},
+  {"client_id": "C003", "name": "Helvetia Ventures", "free_liquidity_chf": 8600000, "last_contact_days": 188, "aum_chf": 72000000, "risk_class": "growth"},
+  {"client_id": "C004", "name": "Zurisee Partners", "free_liquidity_chf": 4100000, "last_contact_days": 95, "aum_chf": 29000000, "risk_class": "balanced"},
+  {"client_id": "C005", "name": "Sihl Advisory", "free_liquidity_chf": 7900000, "last_contact_days": 12, "aum_chf": 66000000, "risk_class": "growth"},
+  {"client_id": "C006", "name": "Rheinblick Wealth", "free_liquidity_chf": 3050000, "last_contact_days": 144, "aum_chf": 24000000, "risk_class": "balanced"},
+  {"client_id": "C007", "name": "Uetliberg Capital", "free_liquidity_chf": 9800000, "last_contact_days": 201, "aum_chf": 91000000, "risk_class": "growth"},
+  {"client_id": "C008", "name": "Aare Private Assets", "free_liquidity_chf": 1200000, "last_contact_days": 76, "aum_chf": 9800000, "risk_class": "conservative"},
+  {"client_id": "C009", "name": "Pilatus Multi Family", "free_liquidity_chf": 6600000, "last_contact_days": 130, "aum_chf": 53000000, "risk_class": "balanced"},
+  {"client_id": "C010", "name": "Bernina Estate Advisors", "free_liquidity_chf": 4950000, "last_contact_days": 54, "aum_chf": 36000000, "risk_class": "balanced"}
+]
