@@ -1,36 +1,121 @@
-# Apollo Query Layer – Design Document
 
-## Problem Statement
-The Etops CRM API provides per‑client endpoints (list clients, fetch one client’s details). There is no native cross‑client aggregation. 
+# Apollo Query Layer
 
-A relationship manager at an EAM needs to ask: *“Which clients have the highest free liquidity and have not had a contact event in the last 90 days?”* 
+A natural language query layer for the Etops CRM API – built for the Olymp AG case study.
 
-Currently this takes 30+ minutes to 1 day of manual Excel work. The goal is to answer it in seconds via natural language, with deterministic, auditable results.
+**Stack:** Flask + React(TypeScript) + SQLite + OpenAI GPT-3.5 Turbo/ Ollama(gpt 120b oss cloud)
 
-## Proposed Architecture
+---
 
-( 
-    User (React chat) → Flask (/chat) → Ollama (local LLM) → Tool call parsing → Aggregation Layer → Mock Etops API → Ranked results → Frontend (React)
-)
+## Architecture
 
-# Two core components:
+```
+User Question → React Frontend → Flask Backend → LLM (Tool Call) → SQLite Query → Ranked Results
+                                                                           ↓
+                                                              Tool Trace (Audit)
+```
 
-### 1. Aggregation Layer (Python)
-- **Concurrent fan‑out** – Use `asyncio` + `aiohttp` or `ThreadPoolExecutor` to fetch all 250 clients in parallel (bounded concurrency of 20 simultaneous requests).
-- **In‑memory caching** – Cache individual client profiles for 5 minutes (TTL). Reduces load on repeated queries.
-- **Post‑query filtering** – Fetch all required fields (free liquidity, last contact date) for every client, then filter/sort in‑memory. For 250 clients this is fine; for 5000 we would pre‑index.
+**How it works:**
+1. **Background sync** – Fetches 50 mock clients into SQLite (every 5 min)
+2. **LLM orchestrates** – Converts natural language → deterministic tool call
+3. **SQL query** – Executes indexed query (<50ms)
+4. **Tool trace** – Shows exact SQL for FINMA audit compliance
 
-### 2. LLM Tool Use with Ollama
-Ollama does not natively support OpenAI‑style function calling on all models. **Solution**: Use a model that supports tools (e.g., `llama3.1:8b` or `mistral:7b‑v0.3`). Define a tool schema in the system prompt and instruct the LLM to output **JSON** that matches a `tool_call` object. The Flask backend then parses this JSON and executes the corresponding Python function.
+**NOT RAG** – LLM never retrieves or guesses data. Backend computes everything.
 
-**Tool definition** (embedded in system prompt):
-```json
-{
-  "name": "rank_clients_by_liquidity_and_contact_days",
-  "description": "Return clients sorted by free liquidity (descending) with optional filter for clients with no contact in last N days.",
-  "parameters": {
-    "min_liquidity_chf": {"type": "number", "description": "Optional minimum liquidity in CHF"},
-    "max_last_contact_days": {"type": "integer", "description": "Only include clients with last contact older than this many days (e.g., 90)"},
-    "limit": {"type": "integer", "description": "Maximum number of clients to return"}
-  }
-}
+---
+
+## Quick Start
+
+### 1. Backend
+
+```bash
+cd backend
+pip install -r requirements.txt
+python app.py
+```
+
+Backend runs on `http://localhost:5000`
+
+### 2. Frontend
+
+```bash
+cd react_frontend
+npm install
+npm start
+```
+
+Frontend runs on `http://localhost:3000`
+
+### 3. Environment (Optional)
+
+Create `backend/.env` for OpenAI:
+
+## Inorder to change the API key, navigate to the below path and change line number 184
+```
+olymp/backend/services/llm.py
+```
+
+Or use Ollama locally (no key needed).
+
+---
+
+## Project Structure
+
+```
+olymp/
+├── backend/
+│   ├── app.py              # Flask server, /chat endpoint
+│   ├── services/           # Core logic (aggregation, db, llm)
+│   ├── mock_data.json      # 50 mock clients
+│   ├── apollo.db           # SQLite database (auto-created)
+│   └── requirements.txt
+├── react_frontend/
+│   ├── src/                # React components
+│   └── package.json
+└── README.md
+```
+
+---
+
+## Example Query
+
+**Ask:** *"Which clients have highest liquidity and no contact in the last 90 days?"*
+
+**Response:** Ranked table of 10 clients with tool trace for audit.
+
+---
+
+## Key Design
+
+| Problem | Solution |
+|---------|----------|
+| O(N) fanout (250 API calls per query) | Local SQLite with background sync |
+| LLM hallucination | Deterministic tool calling (NOT RAG) |
+| FINMA audit requirements | Tool trace shows exact SQL |
+| Privacy concerns | Dual LLM support (OpenAI or Ollama) |
+
+---
+
+## Notes
+
+- Mock data only (no live Etops credentials needed)
+- SQLite indexes on `free_liquidity_chf` and `last_contact_days`
+- Streaming status messages in chat
+- Collapsible tool trace for compliance
+
+```
+
+---
+
+## What This README Includes
+
+| Section | Content |
+|---------|---------|
+| Architecture | One-line flow diagram |
+| Quick Start | Backend + frontend commands |
+| Project Structure | Matches your screenshot exactly |
+| Example Query | The user story question |
+| Key Design | O(N) → SQLite, NOT RAG, audit |
+| Notes | Mock data, indexes, streaming |
+

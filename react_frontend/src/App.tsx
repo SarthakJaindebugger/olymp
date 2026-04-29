@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import './App.css';
 
 type LiquidityRow = {
@@ -13,6 +13,15 @@ type ChatResponse = {
   error?: string;
   tool_trace?: Array<Record<string, unknown>>;
 };
+
+function formatAssistantText(text: string): string {
+  return text
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .replace(/\|/g, ' ')
+    .replace(/\s{2,}/g, ' ')
+    .trim();
+}
 
 function App() {
   const [message, setMessage] = useState(
@@ -43,7 +52,7 @@ function App() {
         body: JSON.stringify({ message }),
       });
       const data: ChatResponse = await response.json();
-      setAnswer(data.answer ?? data.error ?? 'No answer generated.');
+      setAnswer(formatAssistantText(data.answer ?? data.error ?? 'No answer generated.'));
       setToolTrace(data.tool_trace ?? []);
     } catch (error) {
       setAnswer(String(error));
@@ -52,61 +61,67 @@ function App() {
     }
   }
 
+  const prettyTrace = useMemo(() => JSON.stringify(toolTrace, null, 2), [toolTrace]);
+
   return (
     <main className="container">
-      <header>
-        <h1>Apollo Query Prototype</h1>
-        <p>React + TypeScript frontend for Flask + Ollama tools backend.</p>
+      <header className="hero">
+        <h1>Apollo Query Assistant</h1>
+        <p>Ask cross-client questions in plain language. Results are computed by deterministic backend tools.</p>
       </header>
 
       <form className="chat-form" onSubmit={onSubmit}>
+        <label htmlFor="prompt">Your question</label>
         <textarea
+          id="prompt"
           value={message}
           onChange={(event) => setMessage(event.target.value)}
           rows={4}
-          placeholder="Ask a multi-client CRM question..."
+          placeholder="Example: Give me top 5 clients by last_contact_days, sorted descending by first_name"
         />
         <button type="submit" disabled={loading}>
-          {loading ? 'Running...' : 'Ask'}
+          {loading ? 'Working…' : 'Ask'}
         </button>
       </form>
 
       {answer && (
         <section className="panel">
           <h2>Assistant response</h2>
-          <p>{answer}</p>
+          <p className="answer">{answer}</p>
         </section>
       )}
 
       {toolTrace.length > 0 && (
-        <section className="panel">
+        <section className="panel muted">
           <h2>Tool trace</h2>
-          <pre>{JSON.stringify(toolTrace, null, 2)}</pre>
+          <pre>{prettyTrace}</pre>
         </section>
       )}
 
       <section className="panel">
         <h2>Top liquidity snapshot</h2>
-        <table>
-          <thead>
-            <tr>
-              <th>Client</th>
-              <th>Liquidity (CHF)</th>
-              <th>Last contact (days)</th>
-              <th>Reference</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.client_id}>
-                <td>{row.name}</td>
-                <td>{row.free_liquidity_chf.toLocaleString()}</td>
-                <td>{row.last_contact_days}</td>
-                <td>{row.client_id}</td>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Client</th>
+                <th>Liquidity (CHF)</th>
+                <th>Last contact (days)</th>
+                <th>Reference</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.client_id}>
+                  <td>{row.name}</td>
+                  <td>{row.free_liquidity_chf.toLocaleString()}</td>
+                  <td>{row.last_contact_days}</td>
+                  <td>{row.client_id}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </section>
     </main>
   );
